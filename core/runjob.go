@@ -184,16 +184,16 @@ func (j *RunJob) buildContainer() (*docker.Container, error) {
 		}
 	}
 
-	var mounts []docker.Mount
+	var binds []string
 	if j.Volumes != "" {
 		volumes, err := parseVolumeSpec(j.Volumes)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing volumes: %s", err)
 		}
 
-		mounts = []docker.Mount{}
+		binds = []string{}
 		for _, v := range volumes {
-			mounts = append(mounts, docker.Mount{Source: v.From, Destination: v.To, RW: true})
+			binds = append(binds, fmt.Sprintf("%s:%s", v.From, v.To))
 		}
 	}
 
@@ -207,7 +207,11 @@ func (j *RunJob) buildContainer() (*docker.Container, error) {
 			Cmd:          args.GetArgs(j.Command),
 			User:         j.User,
 			Env:          envs,
-			Mounts:       mounts,
+		},
+		HostConfig: &docker.HostConfig{
+			AutoRemove: true,
+			Binds: binds,
+			VolumeDriver: "bind",
 		},
 		NetworkingConfig: &docker.NetworkingConfig{},
 	})
