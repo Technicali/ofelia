@@ -211,7 +211,6 @@ func (j *RunJob) buildContainer() (*docker.Container, error) {
 		HostConfig: &docker.HostConfig{
 			AutoRemove: true,
 			Binds: binds,
-			VolumeDriver: "bind",
 		},
 		NetworkingConfig: &docker.NetworkingConfig{},
 	})
