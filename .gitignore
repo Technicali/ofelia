@@ -4,3 +4,5 @@ debug
 build
 bin
 *coverage*
+
+*.env

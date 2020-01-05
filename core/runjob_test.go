@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/fsouza/go-dockerclient/testing"
 	. "gopkg.in/check.v1"
 )
@@ -150,15 +150,18 @@ func (s *SuiteRunJob) createEnvFiles() error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
 
 		w := bufio.NewWriter(file)
 
-		for j := 1; i <= 4; i++ {
+		for j := 1; j <= 4; j++ {
 			fmt.Fprintf(w, "FILE%dKEY%d=VALUE\n", i, j)
 		}
 
-		return w.Flush()
+		err = w.Flush()
+		file.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
