@@ -164,7 +164,7 @@ func (c *ExecJobConfig) buildMiddlewares() {
 	c.ExecJob.Use(middlewares.NewMail(&c.MailConfig))
 }
 
-// RunServiceConfig contains all configuration params needed to build a RunJob
+// RunServiceConfig contains all configuration params needed to build a RunServiceJob
 type RunServiceConfig struct {
 	core.RunServiceJob        `mapstructure:",squash"`
 	middlewares.OverlapConfig `mapstructure:",squash"`
@@ -173,6 +173,7 @@ type RunServiceConfig struct {
 	middlewares.MailConfig    `mapstructure:",squash"`
 }
 
+// RunJobConfig contains all configuration params needed to build a RunJob
 type RunJobConfig struct {
 	core.RunJob               `mapstructure:",squash"`
 	middlewares.OverlapConfig `mapstructure:",squash"`
@@ -188,7 +189,7 @@ func (c *RunJobConfig) buildMiddlewares() {
 	c.RunJob.Use(middlewares.NewMail(&c.MailConfig))
 }
 
-// LocalJobConfig contains all configuration params needed to build a RunJob
+// LocalJobConfig contains all configuration params needed to build a LocalJob
 type LocalJobConfig struct {
 	core.LocalJob             `mapstructure:",squash"`
 	middlewares.OverlapConfig `mapstructure:",squash"`

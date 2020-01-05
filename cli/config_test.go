@@ -185,6 +185,45 @@ func (s *SuiteConfig) TestLabelsConfig(c *C) {
 				"some": map[string]string{
 					requiredLabel: "true",
 					serviceLabel:  "true",
+					labelPrefix + "." + jobRun + ".job1.schedule": "schedule1",
+					labelPrefix + "." + jobRun + ".job1.command":  "command1",
+				},
+				"other": map[string]string{
+					requiredLabel: "true",
+					serviceLabel:  "true",
+					labelPrefix + "." + jobRun + ".job2.schedule": "schedule2",
+					labelPrefix + "." + jobRun + ".job2.command":  "command2",
+					labelPrefix + "." + jobRun + ".job2.image":    "image2",
+					labelPrefix + "." + jobRun + ".job2.network":  "network2",
+					labelPrefix + "." + jobRun + ".job2.volumes":  "from1:to1,from2:to2",
+					labelPrefix + "." + jobRun + ".job2.env":      "key1=val1,key2=val2",
+				},
+			},
+			ExpectedConfig: Config{
+				RunJobs: map[string]*RunJobConfig{
+					"job1": &RunJobConfig{RunJob: core.RunJob{BareJob: core.BareJob{
+						Schedule: "schedule1",
+						Command:  "command1",
+					}}},
+					"job2": &RunJobConfig{RunJob: core.RunJob{
+						BareJob: core.BareJob{
+							Schedule: "schedule2",
+							Command:  "command2",
+						},
+						Image:   "image2",
+						Network: "network2",
+						Volumes: "from1:to1,from2:to2",
+						Env:     "key1=val1,key2=val2",
+					}},
+				},
+			},
+			Comment: "Run jobs from image",
+		},
+		{
+			Labels: map[string]map[string]string{
+				"some": map[string]string{
+					requiredLabel: "true",
+					serviceLabel:  "true",
 					labelPrefix + "." + jobExec + ".job1.schedule":   "schedule1",
 					labelPrefix + "." + jobExec + ".job1.command":    "command1",
 					labelPrefix + "." + jobExec + ".job1.no-overlap": "true",

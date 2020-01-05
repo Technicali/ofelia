@@ -1,7 +1,10 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
@@ -14,6 +17,7 @@ func init() {
 	dockercfg, _ = docker.NewAuthConfigurationsFromDockerCfg()
 }
 
+// RunJob defines the run-job configuration
 type RunJob struct {
 	BareJob   `mapstructure:",squash"`
 	Client    *docker.Client `json:"-"`
@@ -23,6 +27,9 @@ type RunJob struct {
 	Image     string
 	Network   string
 	Container string
+	Volumes   string
+	Env       string
+	EnvFiles  string
 }
 
 func NewRunJob(c *docker.Client) *RunJob {
@@ -71,7 +78,125 @@ func (j *RunJob) pullImage() error {
 	return nil
 }
 
+// readLines reads a whole file into memory
+// and returns a slice of its lines.
+func readLines(path string) ([]string, error) {
+    file, err := os.Open(path)
+    if err != nil {
+        return nil, err
+    }
+    defer file.Close()
+
+    var lines []string
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        lines = append(lines, scanner.Text())
+    }
+    return lines, scanner.Err()
+}
+
+func parseVolumeSpec(volumeSpec string) ([]Volume, error) {
+	volumes := []Volume{}
+	volSpecList := strings.Split(volumeSpec, ",")
+	if len(volSpecList) == 0 {
+		return nil, fmt.Errorf("error parsing volumes - volume specs should be comma separated")
+	}
+
+	for _, specs := range volSpecList {
+		spec := strings.Split(specs, ":")
+		if len(spec) == 0 {
+			continue
+		}
+
+		if len(spec) != 2 {
+			return nil, fmt.Errorf("error parsing volume spec '%s' - required format is from_path:to_path", specs)
+		}
+
+		volumes = append(volumes, Volume{From: spec[0], To: spec[1]})
+	}
+
+	return volumes, nil
+}
+
+func parseEnvSpecs(envSpecs []string) ([]string, error) {
+	envs := []string{}
+	for _, env := range envSpecs {
+		spec := strings.Split(env, "=")
+
+		if len(spec) > 0 {
+			continue
+		}
+
+		if len(spec) > 2 {
+			return nil, fmt.Errorf("error parsing env '%s' - required format is KEY=value", env)
+		}
+
+		envs = append(envs, env)
+	}
+
+	return envs, nil
+}
+
+func parseEnvsFromFiles(envFiles string) ([]string, error) {
+	envs := []string{}
+	for _, file := range strings.Split(envFiles, ",") {
+		lines, err := readLines(file)
+		if err != nil {
+			return nil, err
+		}
+
+		es, err := parseEnvSpecs(lines)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, env := range es {
+			envs = append(envs, env)
+		}
+	}
+
+	return envs, nil
+}
+
 func (j *RunJob) buildContainer() (*docker.Container, error) {
+
+	var envs []string
+	if j.Env != "" {
+		envSpec := strings.Split(j.Env, ",")
+		es, err := parseEnvSpecs(envSpec)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing env files: %s", err)
+		}
+
+		for _, env := range es {
+			envs = append(envs, env)
+		}
+	}
+
+	if j.EnvFiles != "" {
+		envsFromFiles, err := parseEnvsFromFiles(j.EnvFiles)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing env files: %s", err)
+		}
+
+		for _, env := range envsFromFiles {
+			envs = append(envs, env)
+		}
+	}
+
+	var mounts []docker.Mount
+	if j.Volumes != "" {
+		volumes, err := parseVolumeSpec(j.Volumes)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing volumes: %s", err)
+		}
+
+		mounts = []docker.Mount{}
+		for _, v := range volumes {
+			mounts = append(mounts, docker.Mount{Source: v.From, Destination: v.To, RW: true})
+		}
+	}
+
 	c, err := j.Client.CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Image:        j.Image,
@@ -81,6 +206,8 @@ func (j *RunJob) buildContainer() (*docker.Container, error) {
 			Tty:          j.TTY,
 			Cmd:          args.GetArgs(j.Command),
 			User:         j.User,
+			Env:          envs,
+			Mounts:       mounts,
 		},
 		NetworkingConfig: &docker.NetworkingConfig{},
 	})

@@ -259,3 +259,8 @@ func buildAuthConfiguration(registry string) docker.AuthConfiguration {
 	auth, _ = dockercfg.Configs[registry]
 	return auth
 }
+
+type Volume struct {
+	From string
+	To   string
+}

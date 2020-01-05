@@ -2,7 +2,11 @@ package core
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
+	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,7 +15,12 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-const ImageFixture = "test-image"
+const (
+	ImageFixture = "test-image"
+	VolumeSpec   = "/data:/data,/another/path:/config"
+	EnvVars      = "KEY1=val1,KEY2=val2"
+	EnvSpecFiles = "./common.env,./another.env"
+)
 
 type SuiteRunJob struct {
 	server *testing.DockerServer
@@ -28,8 +37,17 @@ func (s *SuiteRunJob) SetUpTest(c *C) {
 	s.client, err = docker.NewClient(s.server.URL())
 	c.Assert(err, IsNil)
 
+	volumes := []string{}
+	for _, vs := range strings.Split(VolumeSpec, ",") {
+		spec := strings.Split(vs, ":")
+		volumes = append(volumes, spec[0])
+	}
+
 	s.buildImage(c)
 	s.createNetwork(c)
+	s.createVolumes(c, volumes)
+	err = s.createEnvFiles()
+	c.Assert(err, IsNil)
 }
 
 func (s *SuiteRunJob) TestRun(c *C) {
@@ -40,6 +58,9 @@ func (s *SuiteRunJob) TestRun(c *C) {
 	job.TTY = true
 	job.Delete = true
 	job.Network = "foo"
+	job.Volumes = VolumeSpec
+	job.Env = EnvVars
+	job.EnvFiles = EnvSpecFiles
 
 	e := NewExecution()
 
@@ -108,8 +129,37 @@ func (s *SuiteRunJob) buildImage(c *C) {
 
 func (s *SuiteRunJob) createNetwork(c *C) {
 	_, err := s.client.CreateNetwork(docker.CreateNetworkOptions{
-		Name: "foo",
+		Name:   "foo",
 		Driver: "bridge",
 	})
 	c.Assert(err, IsNil)
+}
+
+func (s *SuiteRunJob) createVolumes(c *C, volumes []string) {
+	for _, volume := range volumes {
+		_, err := s.client.CreateVolume(docker.CreateVolumeOptions{
+			Name: volume,
+		})
+		c.Assert(err, IsNil)
+	}
+}
+
+func (s *SuiteRunJob) createEnvFiles() error {
+	for i, path := range strings.Split(EnvSpecFiles, ",") {
+		file, err := os.Create(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		w := bufio.NewWriter(file)
+
+		for j := 1; i <= 4; i++ {
+			fmt.Fprintf(w, "FILE%dKEY%d=VALUE\n", i, j)
+		}
+
+		return w.Flush()
+	}
+
+	return nil
 }
