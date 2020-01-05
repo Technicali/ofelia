@@ -228,19 +228,74 @@ func randomID() string {
 	return fmt.Sprintf("%x", b)
 }
 
+// func buildPullOptions(image string) (docker.PullImageOptions, docker.AuthConfiguration) {
+// 	tag := "latest"
+// 	registry := ""
+
+// 	parts := strings.Split(image, ":")
+// 	partCount := len(parts)
+// 	if partCount > 1 {
+// 		tag = parts[partCount-1]
+// 	}
+
+// 	name := parts[0]
+// 	parts = strings.Split(name, "/")
+// 	if len(parts) > 2 {
+// 		registry = parts[0]
+// 	}
+
+// 	return docker.PullImageOptions{
+// 		Repository: name,
+// 		Registry:   registry,
+// 		Tag:        tag,
+// 	}, buildAuthConfiguration(registry)
+// }
+
+type imageSpecData struct {
+	firstQualifier int
+	lastQualifier int
+	firstPart int
+	lastPart int
+}
+
+func parseImageSpec(image string) imageSpecData {
+	return imageSpecData{
+		firstPart: strings.Index(image, "/"),
+		lastPart: strings.LastIndex(image, "/"),
+		firstQualifier: strings.Index(image, ":"),
+		lastQualifier: strings.LastIndex(image, ":"),
+	}
+}
+
 func buildPullOptions(image string) (docker.PullImageOptions, docker.AuthConfiguration) {
 	tag := "latest"
 	registry := ""
+	name := image
 
-	parts := strings.Split(image, ":")
-	if len(parts) == 2 {
-		tag = parts[1]
+	imageData := parseImageSpec(image)
+	runes := []rune(image)
+	
+	// last ':' appears after last '/'
+	if imageData.lastQualifier > 0 && imageData.lastQualifier > imageData.lastPart {
+		tag = string(runes[imageData.lastQualifier+1:])
 	}
 
-	name := parts[0]
-	parts = strings.Split(name, "/")
-	if len(parts) > 2 {
-		registry = parts[0]
+	// first '/' appears after first ':'
+	if imageData.firstQualifier > 0 && imageData.firstPart > imageData.firstQualifier {
+		registry = string(runes[:imageData.firstPart])
+	}
+
+	// no '/' but ':' exists
+	if imageData.firstPart == -1 && imageData.firstQualifier > 0 {
+		name = string(runes[:imageData.firstQualifier])
+	}
+
+	// has '/'
+	if imageData.firstPart > 0 {
+		registry = string(runes[:imageData.firstPart])
+		if imageData.lastQualifier > imageData.firstPart {
+			name = string(runes[:imageData.lastQualifier])
+		}
 	}
 
 	return docker.PullImageOptions{

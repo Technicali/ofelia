@@ -112,6 +112,34 @@ func (s *SuiteRunJob) TestBuildPullImageOptionsRegistry(c *C) {
 	c.Assert(o.Registry, Equals, "quay.io")
 }
 
+func (s *SuiteRunJob) TestBuildPullImageOptionsRegistryWithPort(c *C) {
+	o, _ := buildPullOptions("quay.io:5000/srcd/rest:qux")
+	c.Assert(o.Repository, Equals, "quay.io:5000/srcd/rest")
+	c.Assert(o.Tag, Equals, "qux")
+	c.Assert(o.Registry, Equals, "quay.io:5000")
+}
+
+func (s *SuiteRunJob) TestBuildPullImageOptionsRegistryWithPortNoTag(c *C) {
+	o, _ := buildPullOptions("quay.io:5000/srcd/rest")
+	c.Assert(o.Repository, Equals, "quay.io:5000/srcd/rest")
+	c.Assert(o.Tag, Equals, "latest")
+	c.Assert(o.Registry, Equals, "quay.io:5000")
+}
+
+func (s *SuiteRunJob) TestBuildPullImageOptionsRegistryWithPortSimpleRepository(c *C) {
+	o, _ := buildPullOptions("quay.io:5000/srcd:qux")
+	c.Assert(o.Repository, Equals, "quay.io:5000/srcd")
+	c.Assert(o.Tag, Equals, "qux")
+	c.Assert(o.Registry, Equals, "quay.io:5000")
+}
+
+func (s *SuiteRunJob) TestBuildPullImageOptionsRegistryWithPortSimpleRepositoryNoTag(c *C) {
+	o, _ := buildPullOptions("quay.io:5000/srcd")
+	c.Assert(o.Repository, Equals, "quay.io:5000/srcd")
+	c.Assert(o.Tag, Equals, "latest")
+	c.Assert(o.Registry, Equals, "quay.io:5000")
+}
+
 func (s *SuiteRunJob) buildImage(c *C) {
 	inputbuf := bytes.NewBuffer(nil)
 	tr := tar.NewWriter(inputbuf)
