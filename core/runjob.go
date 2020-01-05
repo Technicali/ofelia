@@ -27,8 +27,8 @@ type RunJob struct {
 	Image     string
 	Network   string
 	Container string
-	Volumes   string `gcfg:"volumes"`
-	Env       string `gcfg:"env"`
+	Volumes   string
+	Env       string
 	EnvFiles  string `gcfg:"env-files"`
 }
 
