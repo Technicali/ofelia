@@ -27,9 +27,9 @@ type RunJob struct {
 	Image     string
 	Network   string
 	Container string
-	Volumes   string
-	Env       string
-	EnvFiles  string
+	Volumes   string `gcfg:"volumes"`
+	Env       string `gcfg:"env"`
+	EnvFiles  string `gcfg:"env-files"`
 }
 
 func NewRunJob(c *docker.Client) *RunJob {
@@ -81,18 +81,18 @@ func (j *RunJob) pullImage() error {
 // readLines reads a whole file into memory
 // and returns a slice of its lines.
 func readLines(path string) ([]string, error) {
-    file, err := os.Open(path)
-    if err != nil {
-        return nil, err
-    }
-    defer file.Close()
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-    var lines []string
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        lines = append(lines, scanner.Text())
-    }
-    return lines, scanner.Err()
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }
 
 func parseVolumeSpec(volumeSpec string) ([]Volume, error) {

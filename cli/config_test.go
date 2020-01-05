@@ -24,6 +24,11 @@ func (s *SuiteConfig) TestBuildFromString(c *C) {
 
 		[job-run "qux"]
 		schedule = @every 10s
+		image = zico/downloader
+		network = zika_messaging
+		volumes = zico-files:/files
+		env-files = ../common.env,../another.env
+		env = FAV_ACTOR=Sharon,FAV_DRINK=Coffee
 
 		[job-local "baz"]
 		schedule = @every 10s

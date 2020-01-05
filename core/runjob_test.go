@@ -19,7 +19,7 @@ const (
 	ImageFixture = "test-image"
 	VolumeSpec   = "/data:/data,/another/path:/config"
 	EnvVars      = "KEY1=val1,KEY2=val2"
-	EnvSpecFiles = "./common.env,./another.env"
+	EnvSpecFiles = "../common.env,../another.env"
 )
 
 type SuiteRunJob struct {
