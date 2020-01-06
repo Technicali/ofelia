@@ -12,6 +12,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/fsouza/go-dockerclient/testing"
+	logging "github.com/op/go-logging"
 	. "gopkg.in/check.v1"
 )
 
@@ -80,7 +81,11 @@ func (s *SuiteRunJob) TestRun(c *C) {
 		wg.Done()
 	}()
 
-	err := job.Run(&Context{Execution: e})
+	var logger Logger
+	logging.SetFormatter(logging.MustStringFormatter(logFormat))
+	logger = logging.MustGetLogger("ofelia")
+
+	err := job.Run(&Context{Execution: e, Logger: logger})
 	c.Assert(err, IsNil)
 	wg.Wait()
 

@@ -2,11 +2,13 @@ package core
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/gobs/args"
 )
@@ -64,6 +66,22 @@ func (j *RunJob) Run(ctx *Context) error {
 	}
 
 	if j.Container == "" {
+		if j.TTY {
+			var buf bytes.Buffer
+			err := j.Client.Logs(docker.LogsOptions{
+				Container:    container.ID,
+				OutputStream: &buf,
+				Stdout:       true,
+				Follow:       false,
+			})
+
+			if err != nil {
+				ctx.Logger.Warningf("failed to extract container logs: %v\n", err)
+			} else {
+				stdcopy.StdCopy(os.Stdout, os.Stderr, &buf)
+			}
+		}
+
 		return j.deleteContainer(container.ID)
 	}
 	return nil
@@ -209,8 +227,7 @@ func (j *RunJob) buildContainer() (*docker.Container, error) {
 			Env:          envs,
 		},
 		HostConfig: &docker.HostConfig{
-			AutoRemove: true,
-			Binds: binds,
+			Binds:      binds,
 		},
 		NetworkingConfig: &docker.NetworkingConfig{},
 	})
